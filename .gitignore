@@ -1,0 +1,37 @@
+# Loại trừ artefact nhị phân lớn và tài sản có bản quyền khỏi repo.
+# Repo chỉ chứa PHÂN TÍCH, không chứa binary của College Board.
+
+# --- Bản cài / binary của Bluebook (995 MB) ---
+exe/
+scripts/
+results/
+evidence/
+
+# --- Mọi loại binary ---
+*.exe
+*.dll
+*.node
+*.pak
+*.dat
+*.bin
+*.asar
+*.dmp
+*.pml
+
+# --- JS đã giải nén từ app.asar (tài sản có bản quyền của College Board) ---
+analysis/deobf/
+
+# --- Kết quả chạy / bắt log ---
+analysis/dumps/
+analysis/runs/
+
+# --- Tạm ---
+*.tmp
+*.log
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+
+# Kế hoạch phiên làm việc (không thuộc báo cáo)
+.zcode/
