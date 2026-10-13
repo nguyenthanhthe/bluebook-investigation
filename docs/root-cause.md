@@ -90,6 +90,11 @@ Diễn giải:
 | IFEO / AppCompat Layers / per-app GPU pref | Đọc registry (3 nhánh + HKCU) | **không có mục Bluebook** |
 | Smart App Control / WDAC | Đọc `CI\Policy` | **không bật** |
 
+> **Cập nhật:** hai dòng đầu (ACL) là **phủ định đúng nhưng không nhắm đúng cơ
+> chế**. Bản cài trong profile vốn đã có `Everyone:(I)(RX)` trên `icudtl.dat`,
+> nên thêm ACE không thể giúp; trở ngại thật là **mức toàn vẹn Low** của tiến
+> trình con. Xem [mechanism.md §5](mechanism.md).
+
 ## 4. Bằng chứng quyết định thứ hai: **không phải lỗi riêng của Bluebook**
 
 Dùng một cây Electron 32-bit "trần" (`etest32.exe` = chính `Bluebook.exe` đã
