@@ -6,6 +6,7 @@ Báo cáo kỹ thuật về việc **Bluebook.exe** (ứng dụng thi College Bo
 và một bản vá đã được kiểm chứng.
 
 - Nguyên nhân: [docs/root-cause.md](docs/root-cause.md)
+- **Cơ chế gốc (đã xác định):** [docs/mechanism.md](docs/mechanism.md)
 - Dịch ngược: [docs/reverse-engineering.md](docs/reverse-engineering.md)
 - Nhật ký thực nghiệm & cách tái lập: [docs/evidence.md](docs/evidence.md)
 - Bản vá: [patch/README.md](patch/README.md)
@@ -26,8 +27,17 @@ The trigger is **where the files physically live**: the app works when its
 files sit outside the user profile and fails when they sit inside
 `C:\Users\<user>\…`. This was isolated with a path matrix, and it is **not
 caused by** the folder name, the path string (a `subst` drive still fails), the
-directory ACL, the owner, directory attributes, `%TEMP%`, Defender/ASR/CFA
-policy, IFEO, AppCompat shims, or per-app GPU preference.
+owner, directory attributes, `%TEMP%`, Defender/ASR/CFA policy, IFEO, AppCompat
+shims, or per-app GPU preference.
+
+**The exact failure is now determined** (see [docs/mechanism.md](docs/mechanism.md)):
+the sandboxed GPU child cannot open `icudtl.dat`. The crashing function records
+`GetLastError = 5` (ACCESS_DENIED) and the attempted path in globals, which were
+read directly from the suspended child. The decisive factor is the child's **Low
+mandatory integrity level**: rebuilding a token with exactly the child's SID set
+and running it twice — Medium IL versus Low IL — flips the result on the profile
+path only. The denial boundary is the profile root `C:\Users\Admin` itself, and
+the token is identical inside and outside the profile.
 
 Critically, it is **not a College Board bug**: a stock 32-bit Electron binary
 shows the same behaviour, and every other Electron app installed in the profile
@@ -155,10 +165,16 @@ khi** nạp bất kỳ DLL đồ họa nào. Củng cố: dump của tiến trì
 hệ thống (`ntdll`, `kernel32`, `ole32`, `dwmapi`, `DWrite`, `wlanapi`…), **không
 có** `d3d11.dll`, `libEGL.dll`, `libGLESv2.dll`, `dxgi.dll`.
 
-**Chưa xác định:** chính xác lời gọi sandbox nào thất bại. Hai rào cản: máy
-không có quyền admin (không chạy được ProcMon/WinDbg), và tiến trình GPU chết
-trước khi Crashpad client của nó kịp khởi tạo nên **không bao giờ** sinh dump
-riêng (đã harvest ở 10 ms/lần suốt quá trình crash, chỉ thu được dump browser).
+**Đã xác định chính xác (xem [docs/mechanism.md](docs/mechanism.md)):** tiến
+trình con sandbox không mở được `icudtl.dat`; `GetLastError = 5`
+(ACCESS_DENIED) do chính nó ghi lại, đọc trực tiếp từ bộ nhớ tiến trình con đang
+treo tại `int3` (RVA `0x19E0914`). **Yếu tố quyết định là mức toàn vẹn Low**:
+dựng token trùng tập SID của tiến trình con rồi chạy ở Medium IL và Low IL, chỉ
+đổi một biến — kết quả lật đúng trên đường dẫn profile. Biên giới bị từ chối là
+thư mục profile `C:\Users\Admin`.
+
+**Chưa xác định:** vì sao **chỉ runtime 32-bit** bị, còn Electron 64-bit trong
+cùng profile thì không. Đây là câu hỏi mở duy nhất còn lại.
 
 ## 5. Bản vá
 
@@ -226,12 +242,15 @@ Chi tiết đầy đủ: [docs/reverse-engineering.md](docs/reverse-engineering.
 ├── README.md                     ← file này
 ├── docs/
 │   ├── root-cause.md             nguyên nhân, tách bạch quan sát/suy luận/chưa rõ
+│   ├── mechanism.md              cơ chế gốc: tiến trình con không đọc được icudtl.dat
 │   ├── reverse-engineering.md    kết quả dịch ngược binary + app.asar
 │   └── evidence.md               nhật ký thực nghiệm & cách tái lập
 ├── analysis/                     script phân tích & thực nghiệm
 │   ├── deescape.py collapse.py literals.py strdecode.py   (giải obfuscate JS)
 │   ├── mdparse2.py mdstack.py mdmods.py                    (phân tích minidump)
 │   ├── addon_strings.py archscan.py                        (native addon, kiến trúc)
+│   ├── icuprobe.py childtoken.py dumpchild.py              (đọc biến ICU, token, dump con)
+│   ├── tokenclone_test.py restricted_token_*.py            (thí nghiệm token hạn chế)
 │   ├── dbwin.py dbgchild.py                                (bắt OutputDebugString, gỡ lỗi)
 │   └── *.ps1                                               (ma trận vị trí, ACL, thuộc tính…)
 └── patch/

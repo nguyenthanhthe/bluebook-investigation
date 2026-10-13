@@ -138,15 +138,14 @@ dụng Electron 64-bit cài cùng chỗ đều chạy bình thường.
   `d3d11.dll`, `libEGL.dll`, `libGLESv2.dll`, `dxgi.dll`. Tức nó chết trước khi
   chạm tới tầng đồ họa.
 
-**Chưa xác định:**
+**Đã xác định (xem [mechanism.md](mechanism.md)):** tiến trình con sandbox không
+mở được `icudtl.dat` — `GetLastError = 5` (ACCESS_DENIED) do chính nó ghi lại,
+đọc trực tiếp từ bộ nhớ. Yếu tố quyết định là **mức toàn vẹn Low** của tiến trình
+con: cùng tập SID, chạy ở Medium IL thì mở được, ở Low IL thì bị từ chối; biên
+giới là thư mục profile `C:\Users\Admin`.
 
-- **Chính xác** lời gọi sandbox nào thất bại. Hai rào cản:
-  1. Máy không có quyền admin → không chạy được ProcMon (cần driver) hay WinDbg.
-  2. Tiến trình GPU chết **trước khi** Crashpad client của nó kịp khởi tạo, nên
-     **không bao giờ** sinh dump cho tiến trình GPU — chỉ có dump của browser.
-     (Đã thử harvest ở 10 ms/lần suốt quá trình crash: chỉ thu được dump browser.)
-- Việc tiến trình GPU không phát ra `OutputDebugString` nào (đã dựng listener
-  DBWIN xác nhận) cũng phù hợp với việc nó bị chặn/hủy rất sớm.
+**Chưa xác định:** vì sao **chỉ runtime 32-bit** bị, còn Electron 64-bit trong
+cùng profile thì không. Đây là câu hỏi mở duy nhất còn lại.
 
 ## 6. Ghi chú: chỉnh sửa file `walkthrough.md` trước đó
 
